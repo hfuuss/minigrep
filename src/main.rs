@@ -1,14 +1,40 @@
 use std::env;
 use std::fs;
+use std::process;
+use std::error::Error;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    let query = &args[1];
-    let filename = &args[2];
-    println!("search for {}", query);
-    println!("in file {}", filename);
+    let config = Config::new(&args).unwrap_or_else(|err| {
+        println!("Problem parsing arguments: {}", err);
+        process::exit(1);
+    });
+    println!("search for {}", config.query);
+    println!("in file {}", config.filename);
 
-    let contents = fs::read_to_string(filename).expect("some went wrong reading in file ");
+    if let Err(err) = run(config) {
+        println!("application error: {}", err);
+        process::exit(1);
+    }
+}
+fn run(config: Config) -> Result<(),Box<dyn Error>> {
+    let contents = fs::read_to_string(config.filename)?;
     println!("Read file \n {}", contents);
+    Ok(())
+}
+struct Config {
+    query: String,
+    filename: String,
+}
+
+impl Config {
+    fn new(args: &[String]) -> Result<Config, &str> {
+        if args.len() < 3 {
+            return Err("not enough arguments");
+        }
+        let query = args[1].clone();
+        let filename = args[2].clone();
+        Ok(Config{ query, filename })
+    }
 }
